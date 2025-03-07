@@ -1,6 +1,6 @@
 import './App.css';
 import firebaseApp from './firebase';
-import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 
 // Initialize Firestore
@@ -64,6 +64,17 @@ function App() {
     }
   };
 
+  // Delete assistant from Firestore
+  const deleteAssistant = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'assistants', id));
+      setAssistants(assistants.filter(assistant => assistant.id !== id));
+      console.log('Assistant deleted successfully');
+    } catch (error) {
+      console.error('Error deleting assistant:', error);
+    }
+  };
+
   return (
     <div className="App">
       <div className="main-content">
@@ -74,6 +85,7 @@ function App() {
               <th>Name</th>
               <th>Picture</th>
               <th>Creation Date</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -89,6 +101,14 @@ function App() {
                   />
                 </td>
                 <td>{new Date(assistant.creationDate.seconds * 1000).toLocaleDateString()}</td>
+                <td>
+                  <button 
+                    onClick={() => deleteAssistant(assistant.id)}
+                    style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px', cursor: 'pointer' }}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
