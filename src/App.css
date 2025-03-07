@@ -4,6 +4,24 @@
   font-family: Arial, sans-serif;
 }
 
+/* Add this to src/App.css */
+.delete-button {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.delete-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .sidebar {
   width: 252px;
   background-color: white;
@@ -149,4 +167,44 @@
   color: white;
   padding: 1rem;
   margin-top: 2rem;
+}
+
+/* Button styles */
+.button {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.button-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.button-danger {
+  background-color: #ff4d4d;
+  color: white;
+}
+
+.button-secondary {
+  background-color: #ccc;
+  color: #333;
+}
+
+.delete-button {
+  padding: 5px 10px;
+}
+
+/* Table button styles */
+.table-action-button {
+  padding: 5px 10px;
 }

@@ -1,6 +1,8 @@
 import './App.css';
 import React, { useEffect, useState } from 'react';
 import { assistantService } from './services/assistantService';
+import { Icon } from './components/Icons';
+import { Button, DeleteButton } from './components/Button';
 
 function App() {
   const [assistants, setAssistants] = useState([]);
@@ -170,16 +172,14 @@ function App() {
                 </td>
                 <td>{new Date(assistant.creationDate.seconds * 1000).toLocaleDateString()}</td>
                 <td>
-                  <button 
+                  <DeleteButton 
                     onClick={(e) => {
                       e.stopPropagation(); // Prevent row click
                       deleteAssistant(assistant.id);
                     }}
-                    style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px', cursor: 'pointer' }}
                     disabled={loading}
-                  >
-                    Delete
-                  </button>
+                    className="table-action-button"
+                  />
                 </td>
               </tr>
             ))}
@@ -229,42 +229,55 @@ function App() {
               )}
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
+              <Button 
+                variant="primary"
+                iconName="Save"
                 onClick={updateAssistant}
-                style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '3px', cursor: 'pointer' }}
                 disabled={loading}
               >
                 Save Changes
-              </button>
-              <button 
+              </Button>
+              <Button 
+                variant="secondary"
+                iconName="X"
                 onClick={cancelEdit}
-                style={{ backgroundColor: '#ccc', border: 'none', padding: '8px 16px', borderRadius: '3px', cursor: 'pointer' }}
                 disabled={loading}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         <h2>Add New Assistant</h2>
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={newAssistant.name}
-          onChange={handleChange}
-          disabled={loading}
-        />
-        <input
-          type="text"
-          name="picture"
-          placeholder="Picture URL"
-          value={newAssistant.picture}
-          onChange={handleChange}
-          disabled={loading}
-        />
-        <button onClick={addAssistant} disabled={loading}>Add Assistant</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px' }}>
+          <input
+            type="text"
+            name="name"
+            placeholder="Name"
+            value={newAssistant.name}
+            onChange={handleChange}
+            disabled={loading}
+            style={{ padding: '8px' }}
+          />
+          <input
+            type="text"
+            name="picture"
+            placeholder="Picture URL"
+            value={newAssistant.picture}
+            onChange={handleChange}
+            disabled={loading}
+            style={{ padding: '8px' }}
+          />
+          <Button 
+            variant="primary"
+            iconName="UserPlus"
+            onClick={addAssistant} 
+            disabled={loading}
+          >
+            Add Assistant
+          </Button>
+        </div>
       </div>
     </div>
   );
