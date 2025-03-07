@@ -11,6 +11,7 @@ function App() {
   const [newAssistant, setNewAssistant] = useState({
     name: '',
     picture: '',
+    creationDate: new Date()
   });
 
   // Fetch assistants data
@@ -37,13 +38,24 @@ function App() {
   const addAssistant = async () => {
     if (newAssistant.name && newAssistant.picture) {
       try {
+        const currentDate = new Date();
         const docRef = await addDoc(collection(db, 'assistants'), {
-          ...newAssistant,
-          creationDate: new Date(),
+          name: newAssistant.name,
+          picture: newAssistant.picture,
+          creationDate: currentDate
         });
         console.log('Document written with ID:', docRef.id);
-        setAssistants(prev => [...prev, { ...newAssistant, id: docRef.id, creationDate: new Date() }]);
-        setNewAssistant({ name: '', picture: '' });  // Clear form
+        setAssistants(prev => [...prev, { 
+          id: docRef.id, 
+          name: newAssistant.name,
+          picture: newAssistant.picture,
+          creationDate: currentDate 
+        }]);
+        setNewAssistant({ 
+          name: '', 
+          picture: '', 
+          creationDate: new Date() 
+        });  // Clear form
       } catch (error) {
         console.error('Error adding document:', error);
       }
@@ -54,12 +66,6 @@ function App() {
 
   return (
     <div className="App">
-      <div className="sidebar">
-        <div style={{ padding: '20px' }}>
-          <h3>Firebase Connected</h3>
-          <p>Your app is now connected to Firebase project: test-app-9fb7e</p>
-        </div>
-      </div>
       <div className="main-content">
         <h1>Assistants</h1>
         <table border="1" style={{ margin: '20px', width: '80%' }}>
