@@ -1,6 +1,6 @@
 import './App.css';
 import firebaseApp from './firebase';
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 
 // Initialize Firestore
@@ -12,6 +12,11 @@ function App() {
     name: '',
     picture: '',
     creationDate: new Date()
+  });
+  const [selectedAssistant, setSelectedAssistant] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    picture: ''
   });
 
   // Fetch assistants data
@@ -32,6 +37,12 @@ function App() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewAssistant(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handle edit form input changes
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
   // Add new assistant to Firestore
@@ -70,9 +81,52 @@ function App() {
       await deleteDoc(doc(db, 'assistants', id));
       setAssistants(assistants.filter(assistant => assistant.id !== id));
       console.log('Assistant deleted successfully');
+      // If the deleted assistant was selected, clear the selection
+      if (selectedAssistant && selectedAssistant.id === id) {
+        setSelectedAssistant(null);
+      }
     } catch (error) {
       console.error('Error deleting assistant:', error);
     }
+  };
+
+  // Select assistant for editing
+  const selectAssistant = (assistant) => {
+    setSelectedAssistant(assistant);
+    setEditForm({
+      name: assistant.name,
+      picture: assistant.picture
+    });
+  };
+
+  // Update assistant in Firestore
+  const updateAssistant = async () => {
+    if (!selectedAssistant) return;
+    
+    try {
+      const assistantRef = doc(db, 'assistants', selectedAssistant.id);
+      await updateDoc(assistantRef, {
+        name: editForm.name,
+        picture: editForm.picture
+      });
+      
+      // Update local state
+      setAssistants(assistants.map(assistant => 
+        assistant.id === selectedAssistant.id 
+          ? { ...assistant, name: editForm.name, picture: editForm.picture } 
+          : assistant
+      ));
+      
+      console.log('Assistant updated successfully');
+      setSelectedAssistant(null); // Clear selection
+    } catch (error) {
+      console.error('Error updating assistant:', error);
+    }
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setSelectedAssistant(null);
   };
 
   return (
@@ -90,7 +144,11 @@ function App() {
           </thead>
           <tbody>
             {assistants.map(assistant => (
-              <tr key={assistant.id}>
+              <tr 
+                key={assistant.id} 
+                onClick={() => selectAssistant(assistant)}
+                style={{ cursor: 'pointer', backgroundColor: selectedAssistant?.id === assistant.id ? '#f0f0f0' : 'transparent' }}
+              >
                 <td>{assistant.name}</td>
                 <td>
                   <img 
@@ -103,7 +161,10 @@ function App() {
                 <td>{new Date(assistant.creationDate.seconds * 1000).toLocaleDateString()}</td>
                 <td>
                   <button 
-                    onClick={() => deleteAssistant(assistant.id)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click
+                      deleteAssistant(assistant.id);
+                    }}
                     style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px', cursor: 'pointer' }}
                   >
                     Delete
@@ -113,6 +174,63 @@ function App() {
             ))}
           </tbody>
         </table>
+
+        {selectedAssistant && (
+          <div style={{ 
+            margin: '20px', 
+            padding: '20px', 
+            border: '1px solid #ccc', 
+            borderRadius: '5px',
+            backgroundColor: '#f9f9f9'
+          }}>
+            <h2>Edit Assistant</h2>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Name:</label>
+              <input
+                type="text"
+                name="name"
+                value={editForm.name}
+                onChange={handleEditChange}
+                style={{ width: '100%', padding: '8px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Picture URL:</label>
+              <input
+                type="text"
+                name="picture"
+                value={editForm.picture}
+                onChange={handleEditChange}
+                style={{ width: '100%', padding: '8px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Preview:</label>
+              {editForm.picture && (
+                <img 
+                  src={editForm.picture} 
+                  alt="Preview" 
+                  width="100" 
+                  style={{ borderRadius: '5px' }} 
+                />
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={updateAssistant}
+                style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '3px', cursor: 'pointer' }}
+              >
+                Save Changes
+              </button>
+              <button 
+                onClick={cancelEdit}
+                style={{ backgroundColor: '#ccc', border: 'none', padding: '8px 16px', borderRadius: '3px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         <h2>Add New Assistant</h2>
         <input
