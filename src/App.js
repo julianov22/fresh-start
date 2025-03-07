@@ -1,6 +1,6 @@
 import './App.css';
 import firebaseApp from './firebase';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 
 // Initialize Firestore
@@ -8,7 +8,12 @@ const db = getFirestore(firebaseApp);
 
 function App() {
   const [assistants, setAssistants] = useState([]);
+  const [newAssistant, setNewAssistant] = useState({
+    name: '',
+    picture: '',
+  });
 
+  // Fetch assistants data
   useEffect(() => {
     const fetchAssistants = async () => {
       try {
@@ -16,11 +21,36 @@ function App() {
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setAssistants(data);
       } catch (error) {
-        console.error("Error fetching assistants:", error);
+        console.error('Error fetching assistants:', error);
       }
     };
     fetchAssistants();
   }, []);
+
+  // Handle form input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setNewAssistant(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Add new assistant to Firestore
+  const addAssistant = async () => {
+    if (newAssistant.name && newAssistant.picture) {
+      try {
+        const docRef = await addDoc(collection(db, 'assistants'), {
+          ...newAssistant,
+          creationDate: new Date(),
+        });
+        console.log('Document written with ID:', docRef.id);
+        setAssistants(prev => [...prev, { ...newAssistant, id: docRef.id, creationDate: new Date() }]);
+        setNewAssistant({ name: '', picture: '' });  // Clear form
+      } catch (error) {
+        console.error('Error adding document:', error);
+      }
+    } else {
+      alert('Please fill in all fields!');
+    }
+  };
 
   return (
     <div className="App">
@@ -37,7 +67,7 @@ function App() {
             <tr>
               <th>Name</th>
               <th>Picture</th>
-              <th>Date</th>
+              <th>Creation Date</th>
             </tr>
           </thead>
           <tbody>
@@ -57,6 +87,23 @@ function App() {
             ))}
           </tbody>
         </table>
+
+        <h2>Add New Assistant</h2>
+        <input
+          type="text"
+          name="name"
+          placeholder="Name"
+          value={newAssistant.name}
+          onChange={handleChange}
+        />
+        <input
+          type="text"
+          name="picture"
+          placeholder="Picture URL"
+          value={newAssistant.picture}
+          onChange={handleChange}
+        />
+        <button onClick={addAssistant}>Add Assistant</button>
       </div>
     </div>
   );
