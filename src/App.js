@@ -1,35 +1,37 @@
 import './App.css';
-import firebaseApp from './firebase';
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-
-// Initialize Firestore
-const db = getFirestore(firebaseApp);
+import { assistantService } from './services/assistantService';
 
 function App() {
   const [assistants, setAssistants] = useState([]);
   const [newAssistant, setNewAssistant] = useState({
     name: '',
     picture: '',
-    creationDate: new Date()
   });
   const [selectedAssistant, setSelectedAssistant] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '',
     picture: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Fetch assistants data
   useEffect(() => {
     const fetchAssistants = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const querySnapshot = await getDocs(collection(db, 'assistants'));
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const data = await assistantService.getAllAssistants();
         setAssistants(data);
       } catch (error) {
-        console.error('Error fetching assistants:', error);
+        setError('Failed to fetch assistants');
+        console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
+    
     fetchAssistants();
   }, []);
 
@@ -45,48 +47,47 @@ function App() {
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Add new assistant to Firestore
+  // Add new assistant
   const addAssistant = async () => {
     if (newAssistant.name && newAssistant.picture) {
+      setLoading(true);
+      setError(null);
       try {
-        const currentDate = new Date();
-        const docRef = await addDoc(collection(db, 'assistants'), {
+        const addedAssistant = await assistantService.addAssistant({
           name: newAssistant.name,
           picture: newAssistant.picture,
-          creationDate: currentDate
         });
-        console.log('Document written with ID:', docRef.id);
-        setAssistants(prev => [...prev, { 
-          id: docRef.id, 
-          name: newAssistant.name,
-          picture: newAssistant.picture,
-          creationDate: currentDate 
-        }]);
-        setNewAssistant({ 
-          name: '', 
-          picture: '', 
-          creationDate: new Date() 
-        });  // Clear form
+        
+        setAssistants(prev => [...prev, addedAssistant]);
+        setNewAssistant({ name: '', picture: '' });  // Clear form
       } catch (error) {
-        console.error('Error adding document:', error);
+        setError('Failed to add assistant');
+        console.error(error);
+      } finally {
+        setLoading(false);
       }
     } else {
       alert('Please fill in all fields!');
     }
   };
 
-  // Delete assistant from Firestore
+  // Delete assistant
   const deleteAssistant = async (id) => {
+    setLoading(true);
+    setError(null);
     try {
-      await deleteDoc(doc(db, 'assistants', id));
+      await assistantService.deleteAssistant(id);
       setAssistants(assistants.filter(assistant => assistant.id !== id));
-      console.log('Assistant deleted successfully');
+      
       // If the deleted assistant was selected, clear the selection
       if (selectedAssistant && selectedAssistant.id === id) {
         setSelectedAssistant(null);
       }
     } catch (error) {
-      console.error('Error deleting assistant:', error);
+      setError('Failed to delete assistant');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,28 +100,33 @@ function App() {
     });
   };
 
-  // Update assistant in Firestore
+  // Update assistant
   const updateAssistant = async () => {
     if (!selectedAssistant) return;
     
+    setLoading(true);
+    setError(null);
     try {
-      const assistantRef = doc(db, 'assistants', selectedAssistant.id);
-      await updateDoc(assistantRef, {
+      const updates = {
         name: editForm.name,
         picture: editForm.picture
-      });
+      };
+      
+      await assistantService.updateAssistant(selectedAssistant.id, updates);
       
       // Update local state
       setAssistants(assistants.map(assistant => 
         assistant.id === selectedAssistant.id 
-          ? { ...assistant, name: editForm.name, picture: editForm.picture } 
+          ? { ...assistant, ...updates } 
           : assistant
       ));
       
-      console.log('Assistant updated successfully');
       setSelectedAssistant(null); // Clear selection
     } catch (error) {
-      console.error('Error updating assistant:', error);
+      setError('Failed to update assistant');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -133,6 +139,10 @@ function App() {
     <div className="App">
       <div className="main-content">
         <h1>Assistants</h1>
+        
+        {error && <div className="error-message" style={{ color: 'red', margin: '10px 0' }}>{error}</div>}
+        {loading && <div className="loading-indicator">Loading...</div>}
+        
         <table border="1" style={{ margin: '20px', width: '80%' }}>
           <thead>
             <tr>
@@ -166,6 +176,7 @@ function App() {
                       deleteAssistant(assistant.id);
                     }}
                     style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '3px', cursor: 'pointer' }}
+                    disabled={loading}
                   >
                     Delete
                   </button>
@@ -192,6 +203,7 @@ function App() {
                 value={editForm.name}
                 onChange={handleEditChange}
                 style={{ width: '100%', padding: '8px' }}
+                disabled={loading}
               />
             </div>
             <div style={{ marginBottom: '10px' }}>
@@ -202,6 +214,7 @@ function App() {
                 value={editForm.picture}
                 onChange={handleEditChange}
                 style={{ width: '100%', padding: '8px' }}
+                disabled={loading}
               />
             </div>
             <div style={{ marginBottom: '10px' }}>
@@ -219,12 +232,14 @@ function App() {
               <button 
                 onClick={updateAssistant}
                 style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '3px', cursor: 'pointer' }}
+                disabled={loading}
               >
                 Save Changes
               </button>
               <button 
                 onClick={cancelEdit}
                 style={{ backgroundColor: '#ccc', border: 'none', padding: '8px 16px', borderRadius: '3px', cursor: 'pointer' }}
+                disabled={loading}
               >
                 Cancel
               </button>
@@ -239,6 +254,7 @@ function App() {
           placeholder="Name"
           value={newAssistant.name}
           onChange={handleChange}
+          disabled={loading}
         />
         <input
           type="text"
@@ -246,8 +262,9 @@ function App() {
           placeholder="Picture URL"
           value={newAssistant.picture}
           onChange={handleChange}
+          disabled={loading}
         />
-        <button onClick={addAssistant}>Add Assistant</button>
+        <button onClick={addAssistant} disabled={loading}>Add Assistant</button>
       </div>
     </div>
   );
